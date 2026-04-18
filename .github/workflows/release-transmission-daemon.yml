@@ -7,9 +7,9 @@ on:
   workflow_dispatch:
     inputs:
       transmission_version:
-        description: 'Transmission 版本号（例如：4.0.6）'
+        description: 'Transmission 版本号（例如：4.1.1）'
         required: true
-        default: '4.0.6'
+        default: '4.1.1'
 
 jobs:
   build-transmission-daemon:
@@ -19,7 +19,7 @@ jobs:
     uses: ./.github/workflows/build_transmission-daemon_base_workflow.yml
     with:
       arch: ${{ matrix.arch }}
-      transmission_version: ${{ github.event.inputs.transmission_version || '4.0.6' }}  # 传给子流程
+      transmission_version: ${{ github.event.inputs.transmission_version || '4.1.1' }}
 
   release-transmission-daemon:
     runs-on: ubuntu-latest
@@ -28,29 +28,41 @@ jobs:
       matrix:
         arch: [amd64, arm64]
     env:
-      TRANSMISSION_VERSION: ${{ github.event.inputs.transmission_version || '4.0.6' }}
+      TRANSMISSION_VERSION: ${{ github.event.inputs.transmission_version || '4.1.1' }}
     steps:
-      - uses: actions/checkout@v4.1.6
+      - uses: actions/checkout@v4.2.2
 
       - name: Download transmission-daemon release files
-        uses: actions/download-artifact@v4.1.7
+        uses: actions/download-artifact@v4.10.0
         with:
           name: transmission-daemon-${{ env.TRANSMISSION_VERSION }}-${{ matrix.arch }}.tar.xz
 
       - name: Create transmission-daemon Release
         id: create_release
         run: |
-          tag_name=$(echo "${GITHUB_REF#refs/tags/}")
+          if [[ $GITHUB_REF == refs/tags/* ]]; then
+            tag_name=${GITHUB_REF#refs/tags/}
+          else
+            tag_name="manual-release-${{ env.TRANSMISSION_VERSION }}"
+          fi
           body="Release for $tag_name - ${{ matrix.arch }}"
           release_tag="${tag_name}-${{ matrix.arch }}"
 
+          echo "Tag name: $tag_name"
+          echo "Release tag: $release_tag"
           gh release create "$release_tag" "transmission-daemon-${{ env.TRANSMISSION_VERSION }}-${{ matrix.arch }}.tar.xz" --notes "$body"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Verify Release
         run: |
-          tag_name=$(echo "${GITHUB_REF#refs/tags/}")
+          if [[ $GITHUB_REF == refs/tags/* ]]; then
+            tag_name=${GITHUB_REF#refs/tags/}
+          else
+            tag_name="manual-release-${{ env.TRANSMISSION_VERSION }}"
+          fi
           release_tag="${tag_name}-${{ matrix.arch }}"
           release_id=$(gh release view "$release_tag" --json id -q ".id")
           echo "Release ID: $release_id"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
