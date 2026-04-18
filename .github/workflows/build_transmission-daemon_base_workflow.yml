@@ -6,13 +6,16 @@ on:
       arch:
         required: true
         type: string
+      transmission_version:  # 这里新增：接收外部传入的版本号
+        required: true
+        type: string
 
 jobs:
   build-transmission-daemon:
     runs-on: ubuntu-latest
     env:
       working-directory: ./transmission-daemon
-      TRANSMISSION_VERSION: 4.0.6
+      TRANSMISSION_VERSION: ${{ inputs.transmission_version }}  # 使用传入的版本号
     defaults:
       run:
         working-directory: ${{ env.working-directory }}
