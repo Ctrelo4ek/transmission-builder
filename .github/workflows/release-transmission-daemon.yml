@@ -24,45 +24,30 @@ jobs:
   release-transmission-daemon:
     runs-on: ubuntu-latest
     needs: [build-transmission-daemon]
-    strategy:
-      matrix:
-        arch: [amd64, arm64]
     env:
       TRANSMISSION_VERSION: ${{ github.event.inputs.transmission_version || '4.1.1' }}
+      RELEASE_NAME: transmission-static-${{ github.event.inputs.transmission_version || '4.1.1' }}
+
     steps:
       - uses: actions/checkout@v4.2.2
 
-      - name: Download transmission-daemon release files
+      # 下载所有架构的构建产物
+      - name: Download all artifacts
         uses: actions/download-artifact@v4.1.7
-        with:
-          name: transmission-daemon-${{ env.TRANSMISSION_VERSION }}-${{ matrix.arch }}.tar.xz
 
-      - name: Create transmission-daemon Release
-        id: create_release
+      # 创建统一的 Release（只创建一次）
+      - name: Create unified release
         run: |
-          if [[ $GITHUB_REF == refs/tags/* ]]; then
-            tag_name=${GITHUB_REF#refs/tags/}
-          else
-            tag_name="manual-release-${{ env.TRANSMISSION_VERSION }}"
-          fi
-          body="Release for $tag_name - ${{ matrix.arch }}"
-          release_tag="${tag_name}-${{ matrix.arch }}"
+          # 设置最终 Release 名称：transmission-static-4.1.1
+          export RELEASE_TAG="transmission-static-${{ env.TRANSMISSION_VERSION }}"
+          
+          echo "创建统一 Release: $RELEASE_TAG"
+          echo "上传所有架构文件..."
 
-          echo "Tag name: $tag_name"
-          echo "Release tag: $release_tag"
-          gh release create "$release_tag" "transmission-daemon-${{ env.TRANSMISSION_VERSION }}-${{ matrix.arch }}.tar.xz" --notes "$body"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Verify Release
-        run: |
-          if [[ $GITHUB_REF == refs/tags/* ]]; then
-            tag_name=${GITHUB_REF#refs/tags/}
-          else
-            tag_name="manual-release-${{ env.TRANSMISSION_VERSION }}"
-          fi
-          release_tag="${tag_name}-${{ matrix.arch }}"
-          release_id=$(gh release view "$release_tag" --json id -q ".id")
-          echo "Release ID: $release_id"
+          # 创建 Release
+          gh release create "$RELEASE_TAG" \
+            --title "Transmission Static Build ${{ env.TRANSMISSION_VERSION }}" \
+            --notes "自动构建的静态版本，包含 amd64 / arm64 架构" \
+            transmission-daemon-*/transmission-daemon-*.tar.xz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
