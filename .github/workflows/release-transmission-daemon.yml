@@ -1,6 +1,5 @@
 name: Release transmission-daemon workflow
 
-# 触发方式：手动触发 + 标签推送触发
 on:
   push:
     tags:
@@ -8,9 +7,9 @@ on:
   workflow_dispatch:
     inputs:
       transmission_version:
-        description: 'Transmission 版本号（例如：4.0.5）'
+        description: 'Transmission 版本号（例如：4.0.6）'
         required: true
-        default: '4.0.5'
+        default: '4.0.6'
 
 jobs:
   build-transmission-daemon:
@@ -20,6 +19,7 @@ jobs:
     uses: ./.github/workflows/build_transmission-daemon_base_workflow.yml
     with:
       arch: ${{ matrix.arch }}
+      transmission_version: ${{ github.event.inputs.transmission_version || '4.0.6' }}  # 传给子流程
 
   release-transmission-daemon:
     runs-on: ubuntu-latest
@@ -28,8 +28,7 @@ jobs:
       matrix:
         arch: [amd64, arm64]
     env:
-      # 自动读取：手动触发用输入值 / 标签触发用默认值
-      TRANSMISSION_VERSION: ${{ github.event.inputs.transmission_version || '4.0.5' }}
+      TRANSMISSION_VERSION: ${{ github.event.inputs.transmission_version || '4.0.6' }}
     steps:
       - uses: actions/checkout@v4.1.6
 
@@ -42,10 +41,9 @@ jobs:
         id: create_release
         run: |
           tag_name=$(echo "${GITHUB_REF#refs/tags/}")
-          body="Release notes for $tag_name - ${{ matrix.arch }}"
+          body="Release for $tag_name - ${{ matrix.arch }}"
           release_tag="${tag_name}-${{ matrix.arch }}"
 
-          echo "Creating release $release_tag"
           gh release create "$release_tag" "transmission-daemon-${{ env.TRANSMISSION_VERSION }}-${{ matrix.arch }}.tar.xz" --notes "$body"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -56,5 +54,3 @@ jobs:
           release_tag="${tag_name}-${{ matrix.arch }}"
           release_id=$(gh release view "$release_tag" --json id -q ".id")
           echo "Release ID: $release_id"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
