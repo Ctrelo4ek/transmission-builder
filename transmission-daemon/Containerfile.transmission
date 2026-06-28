@@ -27,10 +27,10 @@ RUN   cmake \
         -G Ninja \
         -DCMAKE_BUILD_TYPE=Release \
         -DENABLE_DAEMON=ON \
-        -DENABLE_CLI=OFF \
+        -DENABLE_CLI=ON \
         -DENABLE_GTK=OFF \
         -DENABLE_QT=OFF \
-        -DENABLE_UTILS=OFF \
+        -DENABLE_UTILS=ON \
         -DENABLE_TESTS=OFF \
         -DBUILD_SHARED_LIBS=OFF \
         -DENABLE_NLS=OFF \
