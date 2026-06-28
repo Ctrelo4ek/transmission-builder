@@ -15,7 +15,7 @@ jobs:
   build-transmission-daemon:
     strategy:
       matrix:
-        arch: [amd64, arm64]
+        arch: [arm64] # amd64
     uses: ./.github/workflows/build_transmission-daemon_base_workflow.yml
     with:
       arch: ${{ matrix.arch }}
